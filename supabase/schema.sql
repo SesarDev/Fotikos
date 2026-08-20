@@ -67,6 +67,7 @@ create table missions (
   assignee_id uuid references players(id) on delete cascade,
   target_ids uuid[] not null default '{}',
   base_points integer not null,
+  min_personas integer not null default 1,
   published_at timestamptz not null default now(),
   expires_at timestamptz not null,
   origen text not null check (origen in ('automatica','encargo')),
@@ -93,6 +94,7 @@ create table completion_tags (
   player_id uuid not null references players(id) on delete cascade,
   confirmed boolean not null default false,
   confirmed_at timestamptz,
+  points_awarded numeric not null default 0,
   primary key (completion_id, player_id)
 );
 
@@ -193,6 +195,14 @@ create policy "completion_tags_select_same_room" on completion_tags
   );
 create policy "completion_tags_confirm_own" on completion_tags
   for update using (player_id in (select id from players where auth_user_id = auth.uid()));
+create policy "completion_tags_insert_by_completer" on completion_tags
+  for insert with check (
+    completion_id in (
+      select id from completions where player_id in (
+        select id from players where auth_user_id = auth.uid()
+      )
+    )
+  );
 
 -- admin_drafts (lectura para la sala; la escritura del comité se ajustará en Fase 3)
 create policy "admin_drafts_select_same_room" on admin_drafts

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import MissionsTab from './tabs/MissionsTab'
 import RankingTab from './tabs/RankingTab'
 import MeTab from './tabs/MeTab'
 import { usePlayerMissions } from '../hooks/usePlayerMissions'
 import { isGameAsleep } from '../lib/schedule'
+import { fetchRoomPlayers } from '../lib/ranking'
 
 const TABS = [
   { id: 'misiones', label: 'Misiones', icon: '🎯' },
@@ -13,7 +14,12 @@ const TABS = [
 
 export default function MainApp({ room, player }) {
   const [tab, setTab] = useState('misiones')
-  const { missions, openAll } = usePlayerMissions(room.id, player.id)
+  const [roomPlayers, setRoomPlayers] = useState(null)
+  const { missions, reload, openAll } = usePlayerMissions(room.id, player.id)
+
+  useEffect(() => {
+    fetchRoomPlayers(room.id).then(setRoomPlayers)
+  }, [room.id])
 
   if (isGameAsleep()) {
     return (
@@ -33,8 +39,10 @@ export default function MainApp({ room, player }) {
       </header>
 
       <main className="app-content">
-        {tab === 'misiones' && <MissionsTab missions={missions} onOpenAll={openAll} />}
-        {tab === 'ranking' && <RankingTab room={room} player={player} />}
+        {tab === 'misiones' && (
+          <MissionsTab missions={missions} onOpenAll={openAll} onCompleted={reload} roomPlayers={roomPlayers} player={player} />
+        )}
+        {tab === 'ranking' && <RankingTab room={room} player={player} roomPlayers={roomPlayers} />}
         {tab === 'yo' && <MeTab room={room} player={player} />}
       </main>
 

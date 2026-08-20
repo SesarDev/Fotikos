@@ -10,7 +10,7 @@ export function dificultadFromPoints(basePoints) {
 export async function fetchPlayerMissions(roomId, playerId) {
   const { data, error } = await supabase
     .from('missions')
-    .select('id, rendered_text, base_points, formato, published_at, expires_at, opened_at')
+    .select('id, rendered_text, base_points, formato, slot_values, published_at, expires_at, opened_at, completions(id)')
     .eq('room_id', roomId)
     .eq('assignee_id', playerId)
     .is('cancelled_at', null)

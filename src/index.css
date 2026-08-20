@@ -300,6 +300,29 @@ input {
   font-size: 14px;
 }
 
+/* Etiquetado al completar */
+.tag-picker {
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+}
+
+.tag-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.tag-chip.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-elevated));
+}
+
 /* Ranking */
 .ranking-list {
   list-style: none;

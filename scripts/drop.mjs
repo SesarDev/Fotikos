@@ -73,6 +73,7 @@ async function main() {
     assignee_id: p.assigneeId,
     target_ids: p.targetIds,
     base_points: p.basePoints,
+    min_personas: p.minPersonas,
     published_at: now.toISOString(),
     expires_at: expiresAt,
     origen: 'automatica',

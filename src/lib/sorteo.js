@@ -104,6 +104,7 @@ export function pickPersonalMissions({
         renderedText: renderText(template, slotValues),
         slotValues,
         basePoints: template.base_points,
+        minPersonas: template.min_personas,
         targetIds,
       })
     }
