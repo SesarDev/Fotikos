@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { dificultadFromPoints } from '../../lib/missions'
+import { dificultadFromPoints, countRejectedToday, rejectMission } from '../../lib/missions'
 import { isWithinRapidezBonus } from '../../lib/schedule'
 import { completeMission, buildCaption } from '../../lib/completions'
 
@@ -11,14 +11,23 @@ function timeLeft(expiresAt, now) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
+function isMine(mission, playerId) {
+  return mission.completions.some((c) => c.player_id === playerId)
+}
+
 export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlayers, player }) {
   const [now, setNow] = useState(new Date())
   const [opening, setOpening] = useState(false)
+  const [canReject, setCanReject] = useState(true)
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(tick)
   }, [])
+
+  useEffect(() => {
+    countRejectedToday(player.id).then((count) => setCanReject(count < 1))
+  }, [player.id, missions])
 
   if (!missions) {
     return <p className="muted">Cargando misiones…</p>
@@ -26,10 +35,10 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
 
   const notExpired = missions.filter((m) => new Date(m.expires_at) > now)
   const unopened = notExpired.filter((m) => !m.opened_at)
-  const opened = notExpired.filter((m) => m.opened_at && m.completions.length === 0)
+  const opened = notExpired.filter((m) => m.opened_at && !isMine(m, player.id))
   const expiringSoon = opened.filter((m) => new Date(m.expires_at) - now < 2 * 3_600_000)
   const restOpened = opened.filter((m) => !expiringSoon.includes(m))
-  const completedToday = missions.filter((m) => m.completions.length > 0)
+  const completedToday = missions.filter((m) => isMine(m, player.id))
 
   async function handleOpenAll() {
     setOpening(true)
@@ -38,6 +47,11 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
     } finally {
       setOpening(false)
     }
+  }
+
+  async function handleReject(missionId) {
+    await rejectMission(missionId)
+    await onCompleted()
   }
 
   return (
@@ -58,7 +72,16 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
         <section className="section">
           <h2>⚡ Caducan pronto</h2>
           {expiringSoon.map((m) => (
-            <MissionCard key={m.id} mission={m} now={now} roomPlayers={roomPlayers} player={player} onCompleted={onCompleted} />
+            <MissionCard
+              key={m.id}
+              mission={m}
+              now={now}
+              roomPlayers={roomPlayers}
+              player={player}
+              onCompleted={onCompleted}
+              canReject={canReject}
+              onReject={handleReject}
+            />
           ))}
         </section>
       )}
@@ -67,7 +90,16 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
         <h2>🎯 Abiertas</h2>
         {restOpened.length === 0 && <p className="muted">No tienes misiones abiertas.</p>}
         {restOpened.map((m) => (
-          <MissionCard key={m.id} mission={m} now={now} roomPlayers={roomPlayers} player={player} onCompleted={onCompleted} />
+          <MissionCard
+            key={m.id}
+            mission={m}
+            now={now}
+            roomPlayers={roomPlayers}
+            player={player}
+            onCompleted={onCompleted}
+            canReject={canReject}
+            onReject={handleReject}
+          />
         ))}
       </section>
 
@@ -84,7 +116,7 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
   )
 }
 
-function MissionCard({ mission, now, roomPlayers, player, onCompleted }) {
+function MissionCard({ mission, now, roomPlayers, player, onCompleted, canReject, onReject }) {
   const dificultad = dificultadFromPoints(mission.base_points)
   const rapidez = isWithinRapidezBonus(mission.opened_at, now)
   const [tagging, setTagging] = useState(false)
@@ -140,9 +172,16 @@ function MissionCard({ mission, now, roomPlayers, player, onCompleted }) {
           +{mission.base_points} pts · caduca en {timeLeft(mission.expires_at, now)}
         </span>
         {!tagging && (
-          <button type="button" className="primary small" onClick={startTagging}>
-            Completada
-          </button>
+          <div className="stack-row">
+            {canReject && (
+              <button type="button" className="small" onClick={() => onReject(mission.id)}>
+                No, gracias
+              </button>
+            )}
+            <button type="button" className="primary small" onClick={startTagging}>
+              Completada
+            </button>
+          </div>
         )}
       </div>
 

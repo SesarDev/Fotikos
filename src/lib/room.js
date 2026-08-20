@@ -17,7 +17,7 @@ export async function ensureAnonSession() {
 export async function fetchRoomByCode(code) {
   const { data, error } = await supabase
     .from('rooms')
-    .select('id, code, name')
+    .select('id, code, name, organizer_ids')
     .eq('code', code)
     .maybeSingle()
   if (error) throw error

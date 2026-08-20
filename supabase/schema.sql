@@ -106,6 +106,7 @@ create table admin_drafts (
   formato text not null check (formato in ('personal','carrera','duelo','cooperativa')),
   target_ids uuid[] not null default '{}',
   dificultad text not null check (dificultad in ('facil','media','dificil','epica')),
+  duration_hours numeric,
   scheduled_for timestamptz,
   sent_at timestamptz
 );
@@ -173,6 +174,15 @@ create policy "missions_update_own_or_race" on missions
       or formato = 'carrera'
     )
   );
+-- El comité crea encargos y puede anular cualquier misión de su sala.
+create policy "missions_insert_by_organizer" on missions
+  for insert with check (
+    room_id in (select id from rooms where auth.uid() = any(organizer_ids))
+  );
+create policy "missions_update_by_organizer" on missions
+  for update using (
+    room_id in (select id from rooms where auth.uid() = any(organizer_ids))
+  );
 
 -- completions
 create policy "completions_select_same_room" on completions
@@ -182,6 +192,15 @@ create policy "completions_select_same_room" on completions
 create policy "completions_insert_own" on completions
   for insert with check (
     player_id in (select id from players where auth_user_id = auth.uid())
+  );
+-- El comité resuelve duelos creando las completions de ambos participantes.
+create policy "completions_insert_by_organizer" on completions
+  for insert with check (
+    mission_id in (
+      select id from missions where room_id in (
+        select id from rooms where auth.uid() = any(organizer_ids)
+      )
+    )
   );
 
 -- completion_tags
@@ -204,11 +223,13 @@ create policy "completion_tags_insert_by_completer" on completion_tags
     )
   );
 
--- admin_drafts (lectura para la sala; la escritura del comité se ajustará en Fase 3)
-create policy "admin_drafts_select_same_room" on admin_drafts
-  for select using (room_id in (select current_room_ids()));
+-- admin_drafts: exclusivo del comité (select/insert/update/delete). No son
+-- visibles al resto de la sala para no filtrar sorpresas antes de enviarlas.
+create policy "admin_drafts_organizer_all" on admin_drafts
+  for all
+  using (room_id in (select id from rooms where auth.uid() = any(organizer_ids)))
+  with check (room_id in (select id from rooms where auth.uid() = any(organizer_ids)));
 
--- Nota: no hay políticas de INSERT/UPDATE para sessions, mission_templates,
--- missions (creación) ni admin_drafts porque esas escrituras las hará el
--- motor de sorteo / el compositor del comité con la service role key desde
--- el servidor (Edge Function o cron), no directamente desde el cliente anon.
+-- Nota: no hay políticas de INSERT/UPDATE para sessions ni mission_templates
+-- porque esas escrituras las hace el motor de sorteo con la service role key
+-- desde el servidor (scripts/), no directamente desde el cliente anon.

@@ -97,6 +97,33 @@ input {
   width: 100%;
 }
 
+textarea,
+select {
+  font: inherit;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  padding: 10px 14px;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+}
+
+select {
+  min-height: 48px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
 .screen {
   flex: 1;
   display: flex;
@@ -120,6 +147,11 @@ input {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.stack-row {
+  display: flex;
+  gap: 8px;
 }
 
 /* Selección de emoji */

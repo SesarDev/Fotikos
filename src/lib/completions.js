@@ -21,10 +21,22 @@ export function buildCaption(mission) {
 
 export async function completeMission({ mission, playerId, tagPlayerIds }) {
   const rapidezBonus = isWithinRapidezBonus(mission.opened_at)
+
+  let position = null
+  if (mission.formato === 'carrera') {
+    const { count, error: countError } = await supabase
+      .from('completions')
+      .select('id', { count: 'exact', head: true })
+      .eq('mission_id', mission.id)
+    if (countError) throw countError
+    position = (count ?? 0) + 1
+  }
+
   const points = computeCompleterPoints({
     formato: mission.formato,
     basePoints: mission.base_points,
     rapidezBonus,
+    position,
   })
 
   const { data: completion, error } = await supabase
@@ -33,7 +45,7 @@ export async function completeMission({ mission, playerId, tagPlayerIds }) {
       mission_id: mission.id,
       player_id: playerId,
       points_awarded: points,
-      breakdown: { base: mission.base_points, rapidez: rapidezBonus },
+      breakdown: { base: mission.base_points, rapidez: rapidezBonus, position },
     })
     .select()
     .single()

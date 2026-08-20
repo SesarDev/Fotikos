@@ -7,12 +7,17 @@ export function dificultadFromPoints(basePoints) {
   return 'facil'
 }
 
+// Visible para un jugador si: se la asignaron directamente (personal), está
+// entre los participantes (cooperativa/duelo), o es una carrera (§3.2, de
+// toda la sala).
 export async function fetchPlayerMissions(roomId, playerId) {
   const { data, error } = await supabase
     .from('missions')
-    .select('id, rendered_text, base_points, formato, slot_values, published_at, expires_at, opened_at, completions(id)')
+    .select(
+      'id, rendered_text, base_points, min_personas, formato, slot_values, published_at, expires_at, opened_at, completions(id, player_id)',
+    )
     .eq('room_id', roomId)
-    .eq('assignee_id', playerId)
+    .or(`assignee_id.eq.${playerId},target_ids.cs.{${playerId}},formato.eq.carrera`)
     .is('cancelled_at', null)
     .is('rejected_at', null)
     .order('published_at', { ascending: false })
@@ -26,5 +31,27 @@ export async function openMissions(missionIds) {
     .from('missions')
     .update({ opened_at: new Date().toISOString() })
     .in('id', missionIds)
+  if (error) throw error
+}
+
+// Rechazo silencioso (§5.2, §13, §15): máximo 1 al día por jugador, sin
+// coste ni aviso a nadie — la misión simplemente desaparece.
+export async function countRejectedToday(playerId) {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const { count, error } = await supabase
+    .from('missions')
+    .select('id', { count: 'exact', head: true })
+    .eq('assignee_id', playerId)
+    .gte('rejected_at', start.toISOString())
+  if (error) throw error
+  return count ?? 0
+}
+
+export async function rejectMission(missionId) {
+  const { error } = await supabase
+    .from('missions')
+    .update({ rejected_at: new Date().toISOString() })
+    .eq('id', missionId)
   if (error) throw error
 }

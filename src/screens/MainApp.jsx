@@ -2,24 +2,28 @@ import { useEffect, useState } from 'react'
 import MissionsTab from './tabs/MissionsTab'
 import RankingTab from './tabs/RankingTab'
 import MeTab from './tabs/MeTab'
+import ComiteTab from './tabs/ComiteTab'
 import { usePlayerMissions } from '../hooks/usePlayerMissions'
 import { isGameAsleep } from '../lib/schedule'
 import { fetchRoomPlayers } from '../lib/ranking'
+import { isOrganizer } from '../lib/comite'
 
-const TABS = [
-  { id: 'misiones', label: 'Misiones', icon: '🎯' },
-  { id: 'ranking', label: 'Ranking', icon: '🏆' },
-  { id: 'yo', label: 'Yo', icon: '👤' },
-]
-
-export default function MainApp({ room, player }) {
+export default function MainApp({ room, player, authUserId }) {
   const [tab, setTab] = useState('misiones')
   const [roomPlayers, setRoomPlayers] = useState(null)
   const { missions, reload, openAll } = usePlayerMissions(room.id, player.id)
+  const organizer = isOrganizer(room, authUserId)
 
   useEffect(() => {
     fetchRoomPlayers(room.id).then(setRoomPlayers)
   }, [room.id])
+
+  const TABS = [
+    { id: 'misiones', label: 'Misiones', icon: '🎯' },
+    { id: 'ranking', label: 'Ranking', icon: '🏆' },
+    { id: 'yo', label: 'Yo', icon: '👤' },
+    ...(organizer ? [{ id: 'comite', label: 'Comité', icon: '🛠️' }] : []),
+  ]
 
   if (isGameAsleep()) {
     return (
@@ -44,6 +48,7 @@ export default function MainApp({ room, player }) {
         )}
         {tab === 'ranking' && <RankingTab room={room} player={player} roomPlayers={roomPlayers} />}
         {tab === 'yo' && <MeTab room={room} player={player} />}
+        {tab === 'comite' && organizer && <ComiteTab room={room} roomPlayers={roomPlayers} />}
       </main>
 
       <nav className="app-tabbar">
