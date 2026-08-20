@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "seed:templates": "node scripts/seedTemplates.mjs",
-    "drop": "node scripts/drop.mjs"
+    "drop": "node scripts/drop.mjs",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
@@ -23,6 +24,7 @@
     "dotenv": "^17.4.2",
     "oxlint": "^1.75.0",
     "vite": "^8.2.0",
-    "vite-plugin-pwa": "^1.3.0"
+    "vite-plugin-pwa": "^1.3.0",
+    "wrangler": "^4.125.0"
   }
 }
