@@ -3,6 +3,7 @@ import MissionsTab from './tabs/MissionsTab'
 import RankingTab from './tabs/RankingTab'
 import MeTab from './tabs/MeTab'
 import ComiteTab from './tabs/ComiteTab'
+import RecapTab from './tabs/RecapTab'
 import { usePlayerMissions } from '../hooks/usePlayerMissions'
 import { isGameAsleep } from '../lib/schedule'
 import { fetchRoomPlayers } from '../lib/ranking'
@@ -22,6 +23,7 @@ export default function MainApp({ room, player, authUserId }) {
     { id: 'misiones', label: 'Misiones', icon: '🎯' },
     { id: 'ranking', label: 'Ranking', icon: '🏆' },
     { id: 'yo', label: 'Yo', icon: '👤' },
+    { id: 'recap', label: 'Recap', icon: '🎉' },
     ...(organizer ? [{ id: 'comite', label: 'Comité', icon: '🛠️' }] : []),
   ]
 
@@ -48,6 +50,7 @@ export default function MainApp({ room, player, authUserId }) {
         )}
         {tab === 'ranking' && <RankingTab room={room} player={player} roomPlayers={roomPlayers} />}
         {tab === 'yo' && <MeTab room={room} player={player} />}
+        {tab === 'recap' && <RecapTab room={room} />}
         {tab === 'comite' && organizer && <ComiteTab room={room} roomPlayers={roomPlayers} />}
       </main>
 

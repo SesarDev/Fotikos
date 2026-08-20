@@ -137,6 +137,8 @@ alter table admin_drafts enable row level security;
 -- rooms: lectura abierta (el código de sala ya es el secreto, §13)
 create policy "rooms_select" on rooms
   for select using (true);
+create policy "rooms_update_by_organizer" on rooms
+  for update using (auth.uid() = any(organizer_ids));
 
 -- players
 -- El chequeo "auth_user_id = auth.uid()" es necesario además de la

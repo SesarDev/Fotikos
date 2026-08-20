@@ -9,6 +9,7 @@ import {
   cancelMission,
   countTodayEncargosForTarget,
   resolveDuelo,
+  updateWhatsappGroupUrl,
 } from '../../lib/comite'
 
 const FORMATOS = ['personal', 'carrera', 'duelo', 'cooperativa']
@@ -36,6 +37,8 @@ export default function ComiteTab({ room, roomPlayers }) {
   const [sending, setSending] = useState(false)
   const [drafts, setDrafts] = useState(null)
   const [activeMissions, setActiveMissions] = useState(null)
+  const [whatsappUrl, setWhatsappUrl] = useState(room.settings?.whatsapp_group_url ?? '')
+  const [savingUrl, setSavingUrl] = useState(false)
 
   async function reload() {
     const [d, m] = await Promise.all([fetchDrafts(room.id), fetchActiveMissions(room.id)])
@@ -128,8 +131,28 @@ export default function ComiteTab({ room, roomPlayers }) {
     (m) => m.formato === 'duelo' && m.target_ids?.length === 2,
   )
 
+  async function handleSaveUrl() {
+    setSavingUrl(true)
+    try {
+      await updateWhatsappGroupUrl(room, whatsappUrl.trim())
+    } finally {
+      setSavingUrl(false)
+    }
+  }
+
   return (
     <div className="stack">
+      <section className="section">
+        <h2>📷 Enlace del grupo de WhatsApp</h2>
+        <div className="stack-row">
+          <input value={whatsappUrl} onChange={(e) => setWhatsappUrl(e.target.value)} placeholder="https://chat.whatsapp.com/..." />
+          <button type="button" onClick={handleSaveUrl} disabled={savingUrl}>
+            {savingUrl ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+        <p className="muted">Aparecerá en el Recap para descargar el álbum (§12).</p>
+      </section>
+
       <section className="section">
         <h2>✏️ Nuevo encargo</h2>
         <div className="stack">

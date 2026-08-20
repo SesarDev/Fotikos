@@ -139,6 +139,14 @@ export async function countTodayEncargosForTarget(roomId, playerId) {
   return data.filter((m) => m.assignee_id === playerId || (m.target_ids ?? []).includes(playerId)).length
 }
 
+export async function updateWhatsappGroupUrl(room, url) {
+  const { error } = await supabase
+    .from('rooms')
+    .update({ settings: { ...(room.settings ?? {}), whatsapp_group_url: url } })
+    .eq('id', room.id)
+  if (error) throw error
+}
+
 // Duelos: la votación pasa por una encuesta de WhatsApp (§3.3), fuera de la
 // app. El comité solo teclea aquí el resultado para repartir los puntos.
 export async function resolveDuelo({ mission, winnerId, loserId }) {

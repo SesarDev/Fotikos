@@ -62,3 +62,14 @@ export function isTagAllowedAtHour(tags, madridHour) {
 export function currentMadridHour(now = new Date()) {
   return toMadridParts(now).hours
 }
+
+// A qué "día de juego" pertenece un instante (§2.3: la sesión va de las
+// 14:00 a las 04:00 del día siguiente, así que "día de juego" no coincide
+// con "día de calendario" entre medianoche y las 04:00). Se usa para los
+// campeones diarios del recap (§12) sin depender de la tabla `sessions`.
+export function gameDayKey(date) {
+  const { hours, dateUTC } = toMadridParts(date)
+  const d = new Date(dateUTC)
+  if (hours < 4) d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
