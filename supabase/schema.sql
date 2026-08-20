@@ -136,8 +136,17 @@ create policy "rooms_select" on rooms
   for select using (true);
 
 -- players
+-- El chequeo "auth_user_id = auth.uid()" es necesario además de la
+-- pertenencia a la sala: al insertar con RETURNING, Postgres evalúa esta
+-- política de SELECT sobre la fila recién creada, y current_room_ids()
+-- reconsulta la propia tabla players, que en ese instante del mismo
+-- comando SQL todavía no ve la fila que se está insertando. El chequeo
+-- directo evita depender de esa subconsulta para ver la fila propia.
 create policy "players_select_same_room" on players
-  for select using (room_id in (select current_room_ids()));
+  for select using (
+    auth_user_id = auth.uid()
+    or room_id in (select current_room_ids())
+  );
 create policy "players_insert_self" on players
   for insert with check (auth_user_id = auth.uid());
 create policy "players_update_self" on players
