@@ -17,7 +17,7 @@ export async function ensureAnonSession() {
 export async function fetchRoomByCode(code) {
   const { data, error } = await supabase
     .from('rooms')
-    .select('id, code, name, organizer_ids, settings')
+    .select('id, code, name, settings')
     .eq('code', code)
     .maybeSingle()
   if (error) throw error
@@ -27,7 +27,7 @@ export async function fetchRoomByCode(code) {
 export async function fetchPlayer(roomId, authUserId) {
   const { data, error } = await supabase
     .from('players')
-    .select('id, name, emoji, accepted_rules_at')
+    .select('id, name, emoji, accepted_rules_at, is_organizer')
     .eq('room_id', roomId)
     .eq('auth_user_id', authUserId)
     .maybeSingle()
@@ -40,7 +40,7 @@ export async function fetchPlayerByName(roomId, name) {
   if (!trimmed) return null
   const { data, error } = await supabase
     .from('players')
-    .select('id, name, emoji, accepted_rules_at')
+    .select('id, name, emoji, accepted_rules_at, is_organizer')
     .eq('room_id', roomId)
     .ilike('name', trimmed)
     .maybeSingle()
@@ -55,7 +55,7 @@ export async function claimPlayer({ playerId, authUserId }) {
     .from('players')
     .update({ auth_user_id: authUserId })
     .eq('id', playerId)
-    .select('id, name, emoji, accepted_rules_at')
+    .select('id, name, emoji, accepted_rules_at, is_organizer')
     .single()
   if (error) throw error
   return data
@@ -71,7 +71,7 @@ export async function createPlayer({ roomId, authUserId, name, emoji }) {
       emoji,
       accepted_rules_at: new Date().toISOString(),
     })
-    .select('id, name, emoji, accepted_rules_at')
+    .select('id, name, emoji, accepted_rules_at, is_organizer')
     .single()
   if (error) throw error
   return data

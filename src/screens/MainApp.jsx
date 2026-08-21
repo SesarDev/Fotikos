@@ -8,11 +8,11 @@ import { usePlayerMissions } from '../hooks/usePlayerMissions'
 import { fetchRoomPlayers } from '../lib/ranking'
 import { isOrganizer } from '../lib/comite'
 
-export default function MainApp({ room, player, authUserId }) {
+export default function MainApp({ room, player }) {
   const [tab, setTab] = useState('misiones')
   const [roomPlayers, setRoomPlayers] = useState(null)
   const { missions, reload, openAll } = usePlayerMissions(room.id, player.id)
-  const organizer = isOrganizer(room, authUserId)
+  const organizer = isOrganizer(player)
 
   useEffect(() => {
     fetchRoomPlayers(room.id).then(setRoomPlayers)

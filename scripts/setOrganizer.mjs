@@ -1,4 +1,6 @@
-// Asciende a un jugador ya existente a comité de su sala. Uso:
+// Asciende a un jugador ya existente a comité de su sala (marca su ficha
+// de jugador, no depende de qué dispositivo/sesión use — persiste aunque
+// reclame su cuenta desde otro navegador más adelante). Uso:
 //   npm run set-organizer -- --code KIWI7 --player "Sesar"
 import { adminClient } from './lib/adminClient.mjs'
 
@@ -19,22 +21,19 @@ async function main() {
 
   const { data: room, error: roomError } = await adminClient
     .from('rooms')
-    .select('id, organizer_ids')
+    .select('id')
     .eq('code', code.toUpperCase())
     .single()
   if (roomError) throw roomError
 
   const { data: p, error: playerError } = await adminClient
     .from('players')
-    .select('id, name, auth_user_id')
+    .update({ is_organizer: true })
     .eq('room_id', room.id)
     .ilike('name', player)
+    .select('name')
     .single()
   if (playerError) throw playerError
-
-  const nextOrganizers = [...new Set([...(room.organizer_ids ?? []), p.auth_user_id])]
-  const { error } = await adminClient.from('rooms').update({ organizer_ids: nextOrganizers }).eq('id', room.id)
-  if (error) throw error
 
   console.log(`${p.name} ahora es comité de la sala ${code.toUpperCase()}.`)
 }

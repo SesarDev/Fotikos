@@ -3,8 +3,11 @@ import { computeExpiresAt, currentMadridHour, isTagAllowedAtHour } from './sched
 import { computeCompleterPoints } from './points'
 import { pickPersonalMissions } from './sorteo'
 
-export function isOrganizer(room, authUserId) {
-  return !!room?.organizer_ids?.includes(authUserId)
+// players.is_organizer, no rooms.organizer_ids: el jugador (players.id)
+// no cambia nunca, aunque cambie de dispositivo/navegador y su
+// auth_user_id se reasigne al reclamar (ver migration_fase6.sql).
+export function isOrganizer(player) {
+  return !!player?.is_organizer
 }
 
 const DIFICULTAD_POINTS = { facil: 10, media: 25, dificil: 50, epica: 100 }

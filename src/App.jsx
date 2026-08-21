@@ -79,7 +79,7 @@ function App() {
     )
   }
 
-  return <MainApp room={room} player={player} authUserId={authUserId} />
+  return <MainApp room={room} player={player} />
 }
 
 export default App
