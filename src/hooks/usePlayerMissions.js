@@ -11,6 +11,11 @@ export function usePlayerMissions(roomId, playerId) {
 
   useEffect(() => {
     reload()
+    // Refresco automático (§11.2: cada ~30s es más que suficiente) para
+    // que un reparto nuevo del comité aparezca sin que el jugador tenga
+    // que cerrar y reabrir la app.
+    const tick = setInterval(reload, 30_000)
+    return () => clearInterval(tick)
   }, [reload])
 
   const openAll = useCallback(

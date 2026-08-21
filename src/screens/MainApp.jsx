@@ -8,7 +8,7 @@ import { usePlayerMissions } from '../hooks/usePlayerMissions'
 import { fetchRoomPlayers } from '../lib/ranking'
 import { isOrganizer } from '../lib/comite'
 
-export default function MainApp({ room, player }) {
+export default function MainApp({ room, player, onPlayerUpdated }) {
   const [tab, setTab] = useState('misiones')
   const [roomPlayers, setRoomPlayers] = useState(null)
   const { missions, reload, openAll } = usePlayerMissions(room.id, player.id)
@@ -40,7 +40,7 @@ export default function MainApp({ room, player }) {
           <MissionsTab missions={missions} onOpenAll={openAll} onCompleted={reload} roomPlayers={roomPlayers} player={player} />
         )}
         {tab === 'ranking' && <RankingTab room={room} player={player} roomPlayers={roomPlayers} />}
-        {tab === 'yo' && <MeTab room={room} player={player} />}
+        {tab === 'yo' && <MeTab room={room} player={player} onPlayerUpdated={onPlayerUpdated} />}
         {tab === 'recap' && <RecapTab room={room} />}
         {tab === 'comite' && organizer && <ComiteTab room={room} roomPlayers={roomPlayers} />}
       </main>

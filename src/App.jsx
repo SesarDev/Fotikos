@@ -79,7 +79,7 @@ function App() {
     )
   }
 
-  return <MainApp room={room} player={player} />
+  return <MainApp room={room} player={player} onPlayerUpdated={setPlayer} />
 }
 
 export default App

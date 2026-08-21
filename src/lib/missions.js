@@ -34,8 +34,9 @@ export async function openMissions(missionIds) {
   if (error) throw error
 }
 
-// Rechazo silencioso (§5.2, §13, §15): máximo 1 al día por jugador, sin
-// coste ni aviso a nadie — la misión simplemente desaparece.
+// Rechazo silencioso (§5.2, §13): sin coste ni aviso a nadie, la misión
+// simplemente desaparece. Sin tope — se puede rechazar todo lo que se
+// quiera. Este contador es solo informativo (pestaña "Yo").
 export async function countRejectedToday(playerId) {
   const start = new Date()
   start.setHours(0, 0, 0, 0)

@@ -61,6 +61,17 @@ export async function claimPlayer({ playerId, authUserId }) {
   return data
 }
 
+export async function updatePlayerProfile(playerId, { name, emoji }) {
+  const { data, error } = await supabase
+    .from('players')
+    .update({ name, emoji })
+    .eq('id', playerId)
+    .select('id, name, emoji, accepted_rules_at, is_organizer')
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function createPlayer({ roomId, authUserId, name, emoji }) {
   const { data, error } = await supabase
     .from('players')

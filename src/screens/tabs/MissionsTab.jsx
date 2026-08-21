@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { dificultadFromPoints, countRejectedToday, rejectMission } from '../../lib/missions'
+import { dificultadFromPoints, rejectMission } from '../../lib/missions'
 import { isWithinRapidezBonus } from '../../lib/schedule'
 import { completeMission, buildCaption } from '../../lib/completions'
 
@@ -18,16 +18,11 @@ function isMine(mission, playerId) {
 export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlayers, player }) {
   const [now, setNow] = useState(new Date())
   const [opening, setOpening] = useState(false)
-  const [canReject, setCanReject] = useState(true)
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(tick)
   }, [])
-
-  useEffect(() => {
-    countRejectedToday(player.id).then((count) => setCanReject(count < 1))
-  }, [player.id, missions])
 
   if (!missions) {
     return <p className="muted">Cargando misiones…</p>
@@ -79,7 +74,6 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
               roomPlayers={roomPlayers}
               player={player}
               onCompleted={onCompleted}
-              canReject={canReject}
               onReject={handleReject}
             />
           ))}
@@ -97,7 +91,6 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
             roomPlayers={roomPlayers}
             player={player}
             onCompleted={onCompleted}
-            canReject={canReject}
             onReject={handleReject}
           />
         ))}
@@ -116,9 +109,12 @@ export default function MissionsTab({ missions, onOpenAll, onCompleted, roomPlay
   )
 }
 
-function MissionCard({ mission, now, roomPlayers, player, onCompleted, canReject, onReject }) {
+function MissionCard({ mission, now, roomPlayers, player, onCompleted, onReject }) {
   const dificultad = dificultadFromPoints(mission.base_points)
   const rapidez = isWithinRapidezBonus(mission.opened_at, now)
+  // Rechazar solo tiene sentido en personales: una carrera/cooperativa/duelo
+  // es de varias personas, y "rechazarla" la ocultaría para todas.
+  const canReject = mission.formato === 'personal'
   const [tagging, setTagging] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [submitting, setSubmitting] = useState(false)

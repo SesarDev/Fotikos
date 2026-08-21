@@ -1,14 +1,6 @@
 import { useState } from 'react'
 import { createPlayer, fetchPlayerByName, claimPlayer } from '../lib/room'
-
-const EMOJIS = [
-  '🦊', '🐼', '🐸', '🦁', '🐵', '🐨', '🦄', '🐙', '🐝', '🦋', '🐢', '🦖',
-  '🐧', '🦉', '🐺', '🐯', '🐮', '🐷', '🐭', '🐹', '🐰', '🐻', '🐔', '🦆',
-  '🦅', '🦇', '🐴', '🦓', '🦒', '🐘', '🦛', '🦏', '🐪', '🦘', '🦥', '🦦',
-  '🦨', '🦡', '🐿️', '🦔', '🐳', '🐬', '🦈', '🐊', '🐍', '🦎', '🦂', '🕷️',
-  '🐞', '🦗', '🦋', '🐌', '🦑', '🦀', '🐡', '🐠', '🐟', '🦩', '🦚', '🦜',
-  '🍀', '🌵', '🌈', '⭐', '🔥', '⚡', '🎉', '🎸', '🚀', '🏆', '🍕', '🍩',
-]
+import { EMOJIS } from '../data/emojis'
 
 const RULES = [
   'Las misiones son un juego de honor: no hay jueces, solo el grupo de WhatsApp.',
