@@ -10,6 +10,7 @@ import {
   countTodayEncargosForTarget,
   resolveDuelo,
   updateWhatsappGroupUrl,
+  dropPersonalMissions,
 } from '../../lib/comite'
 
 const FORMATOS = ['personal', 'carrera', 'duelo', 'cooperativa']
@@ -39,6 +40,9 @@ export default function ComiteTab({ room, roomPlayers }) {
   const [activeMissions, setActiveMissions] = useState(null)
   const [whatsappUrl, setWhatsappUrl] = useState(room.settings?.whatsapp_group_url ?? '')
   const [savingUrl, setSavingUrl] = useState(false)
+  const [dropCount, setDropCount] = useState(1)
+  const [dropping, setDropping] = useState(false)
+  const [dropResult, setDropResult] = useState(null)
 
   async function reload() {
     const [d, m] = await Promise.all([fetchDrafts(room.id), fetchActiveMissions(room.id)])
@@ -140,8 +144,39 @@ export default function ComiteTab({ room, roomPlayers }) {
     }
   }
 
+  async function handleDropAll() {
+    setDropping(true)
+    setDropResult(null)
+    try {
+      const result = await dropPersonalMissions({ room, roomPlayers, count: dropCount })
+      setDropResult(result)
+      await reload()
+    } finally {
+      setDropping(false)
+    }
+  }
+
   return (
     <div className="stack">
+      <section className="section">
+        <h2>🎲 Reparto aleatorio</h2>
+        <p className="muted">Reparte misiones personales a todos los jugadores de la sala, sorteadas del catálogo.</p>
+        <div className="stack-row">
+          <input
+            type="number"
+            min="1"
+            max="5"
+            value={dropCount}
+            onChange={(e) => setDropCount(Math.max(1, Number(e.target.value)))}
+            style={{ width: 70 }}
+          />
+          <button type="button" className="primary" onClick={handleDropAll} disabled={dropping}>
+            {dropping ? 'Repartiendo…' : `Repartir a todos ahora (${roomPlayers?.length ?? 0} jugadores)`}
+          </button>
+        </div>
+        {dropResult && <p className="muted">Repartidas {dropResult.count} misiones.</p>}
+      </section>
+
       <section className="section">
         <h2>📷 Enlace del grupo de WhatsApp</h2>
         <div className="stack-row">

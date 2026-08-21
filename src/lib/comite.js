@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
-import { computeExpiresAt } from './schedule'
+import { computeExpiresAt, currentMadridHour, isTagAllowedAtHour } from './schedule'
 import { computeCompleterPoints } from './points'
+import { pickPersonalMissions } from './sorteo'
 
 export function isOrganizer(room, authUserId) {
   return !!room?.organizer_ids?.includes(authUserId)
@@ -145,6 +146,58 @@ export async function updateWhatsappGroupUrl(room, url) {
     .update({ settings: { ...(room.settings ?? {}), whatsapp_group_url: url } })
     .eq('id', room.id)
   if (error) throw error
+}
+
+// Reparto aleatorio de personales a todos los jugadores de la sala, desde
+// la propia app (botón del comité) en vez del script de terminal — mismo
+// motor de sorteo (§11.5), disparado a mano cuando el comité quiera.
+export async function dropPersonalMissions({ room, roomPlayers, count }) {
+  const now = new Date()
+
+  const { data: templates, error: templatesError } = await supabase
+    .from('mission_templates')
+    .select('*')
+    .eq('formato', 'personal')
+    .or(`room_id.is.null,room_id.eq.${room.id}`)
+  if (templatesError) throw templatesError
+
+  const { data: previousMissions, error: previousError } = await supabase
+    .from('missions')
+    .select('template_id, assignee_id, target_ids, expires_at')
+    .eq('room_id', room.id)
+    .eq('formato', 'personal')
+  if (previousError) throw previousError
+
+  const picks = pickPersonalMissions({
+    templates,
+    players: roomPlayers,
+    previousMissions,
+    count,
+    madridHour: currentMadridHour(now),
+    isTagAllowedAtHour,
+  })
+
+  if (picks.length === 0) return { count: 0 }
+
+  const expiresAt = computeExpiresAt(now).toISOString()
+  const rows = picks.map((p) => ({
+    room_id: room.id,
+    template_id: p.templateId,
+    rendered_text: p.renderedText,
+    slot_values: p.slotValues,
+    formato: 'personal',
+    assignee_id: p.assigneeId,
+    target_ids: p.targetIds,
+    base_points: p.basePoints,
+    min_personas: p.minPersonas,
+    published_at: now.toISOString(),
+    expires_at: expiresAt,
+    origen: 'automatica',
+  }))
+
+  const { data, error } = await supabase.from('missions').insert(rows).select('id')
+  if (error) throw error
+  return { count: data.length, expiresAt }
 }
 
 // Duelos: la votación pasa por una encuesta de WhatsApp (§3.3), fuera de la

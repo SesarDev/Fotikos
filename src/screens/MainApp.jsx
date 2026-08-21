@@ -27,7 +27,7 @@ export default function MainApp({ room, player, authUserId }) {
     ...(organizer ? [{ id: 'comite', label: 'Comité', icon: '🛠️' }] : []),
   ]
 
-  if (isGameAsleep()) {
+  if (isGameAsleep() && !organizer) {
     return (
       <div className="screen-center">
         <p>😴 El juego vuelve a las 14:00</p>
