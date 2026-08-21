@@ -89,12 +89,22 @@ export async function computeRecap(roomId) {
     .map(([playerId, points]) => ({ player: playerById.get(playerId), points: Math.round(points) }))
     .sort((a, b) => b.points - a.points)
 
-  const dailyChampions = [...dailyTotals.entries()]
-    .map(([day, dayMap]) => {
-      const [playerId, points] = [...dayMap.entries()].sort((a, b) => b[1] - a[1])[0] ?? []
-      return { day, player: playerId ? playerById.get(playerId) : null, points: Math.round(points ?? 0) }
-    })
+  const dailyStandings = [...dailyTotals.entries()]
+    .map(([day, dayMap]) => ({
+      day,
+      ranking: [...dayMap.entries()]
+        .map(([playerId, points]) => ({ player: playerById.get(playerId), points: Math.round(points) }))
+        .sort((a, b) => b.points - a.points),
+    }))
     .sort((a, b) => a.day.localeCompare(b.day))
+
+  const dailyChampions = dailyStandings.map(({ day, ranking }) => ({
+    day,
+    player: ranking[0]?.player ?? null,
+    points: ranking[0]?.points ?? 0,
+  }))
+
+  const today = dailyStandings.find((d) => d.day === gameDayKey(new Date()))?.ranking ?? []
 
   // Más solicitado / más colaborador: misma métrica (etiquetas confirmadas
   // como cómplice) presentada como dos premios — el spec no da una manera
@@ -172,6 +182,8 @@ export async function computeRecap(roomId) {
 
   return {
     podium,
+    today,
+    dailyStandings,
     dailyChampions,
     awards: {
       masSolicitado,

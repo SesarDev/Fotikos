@@ -65,6 +65,17 @@ function isWithinRapidezBonus(openedAt) {
   return Date.now() - new Date(openedAt).getTime() <= 90 * 60_000
 }
 
+// Progreso de una carrera (§9.2): quién la ha completado ya y en qué orden.
+export async function fetchMissionCompletions(missionId) {
+  const { data, error } = await supabase
+    .from('completions')
+    .select('player_id, completed_at')
+    .eq('mission_id', missionId)
+    .order('completed_at', { ascending: true })
+  if (error) throw error
+  return data
+}
+
 export async function fetchPendingTags(playerId) {
   const { data, error } = await supabase
     .from('completion_tags')

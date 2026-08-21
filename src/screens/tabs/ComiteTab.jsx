@@ -16,8 +16,13 @@ import {
   createTemplate,
   updateTemplate,
   deleteTemplate,
+  buildDropAnnouncement,
+  buildDuelCitation,
+  buildDuelResult,
+  buildSessionClose,
 } from '../../lib/comite'
-import { fetchRoomPlayers } from '../../lib/ranking'
+import { fetchRoomPlayers, fetchRanking } from '../../lib/ranking'
+import { shareToWhatsApp } from '../../lib/whatsapp'
 
 const FORMATOS = ['personal', 'carrera', 'duelo', 'cooperativa']
 const DIFICULTADES = [
@@ -103,6 +108,10 @@ export default function ComiteTab({ room, roomPlayers }) {
     setSending(true)
     try {
       await sendEncargo({ roomId: room.id, ...form, targetIds: form.targetIds })
+      if (form.formato === 'duelo' && form.targetIds.length === 2) {
+        const [aName, bName] = form.targetIds.map((id) => roomPlayers.find((p) => p.id === id)?.name ?? '?')
+        await shareToWhatsApp(buildDuelCitation({ aName, bName }))
+      }
       setForm(emptyForm())
       await reload()
     } finally {
@@ -148,6 +157,8 @@ export default function ComiteTab({ room, roomPlayers }) {
 
   async function handleResolveDuelo(mission, winnerId, loserId) {
     await resolveDuelo({ mission, winnerId, loserId })
+    const winnerName = roomPlayers?.find((p) => p.id === winnerId)?.name ?? '?'
+    await shareToWhatsApp(buildDuelResult(winnerName))
     await reload()
   }
 
@@ -162,6 +173,14 @@ export default function ComiteTab({ room, roomPlayers }) {
     } finally {
       setSavingUrl(false)
     }
+  }
+
+  async function handleCloseSession() {
+    const totals = await fetchRanking(room.id)
+    const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1])
+    const [leaderId, leaderPoints] = ranked[0] ?? []
+    const leaderName = roomPlayers?.find((p) => p.id === leaderId)?.name ?? '?'
+    await shareToWhatsApp(buildSessionClose({ leaderName, leaderPoints: leaderPoints ?? 0 }))
   }
 
   async function handleDropAll() {
@@ -209,6 +228,19 @@ export default function ComiteTab({ room, roomPlayers }) {
           </button>
         </div>
         {dropResult && <p className="muted">Repartidas {dropResult.count} misiones.</p>}
+      </section>
+
+      <section className="section">
+        <h2>📣 Avisos por WhatsApp</h2>
+        <p className="muted">Un aviso genérico sirve para todos — nadie sabe qué le ha tocado a nadie (§4).</p>
+        <div className="stack-row">
+          <button type="button" onClick={() => shareToWhatsApp(buildDropAnnouncement())}>
+            🔔 Se han repartido sobres
+          </button>
+          <button type="button" onClick={handleCloseSession}>
+            😴 Cerrar sesión
+          </button>
+        </div>
       </section>
 
       <section className="section">

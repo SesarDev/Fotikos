@@ -3,6 +3,25 @@ import { computeExpiresAt, currentMadridHour, isTagAllowedAtHour } from './sched
 import { computeCompleterPoints } from './points'
 import { pickPersonalMissions } from './sorteo'
 
+// Plantillas de mensajes de WhatsApp del comité (§10.2). El texto se
+// copia y se abre WhatsApp con lib/whatsapp.js#shareToWhatsApp.
+export function buildDropAnnouncement() {
+  return '🔔 Se han repartido sobres. Abrid la app.'
+}
+
+export function buildDuelCitation({ aName, bName }) {
+  const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  return `⚔️ ${hora} · DUELO · ${aName} vs ${bName}`
+}
+
+export function buildDuelResult(winnerName) {
+  return `🏆 Gana ${winnerName}`
+}
+
+export function buildSessionClose({ leaderName, leaderPoints }) {
+  return `😴 Hasta luego. Va ganando ${leaderName} con ${Math.round(leaderPoints)} pts`
+}
+
 // players.is_organizer, no rooms.organizer_ids: el jugador (players.id)
 // no cambia nunca, aunque cambie de dispositivo/navegador y su
 // auth_user_id se reasigne al reclamar (ver migration_fase6.sql).

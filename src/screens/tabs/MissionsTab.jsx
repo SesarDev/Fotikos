@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { dificultadFromPoints, rejectMission } from '../../lib/missions'
 import { isWithinRapidezBonus } from '../../lib/schedule'
-import { completeMission, buildCaption } from '../../lib/completions'
+import { completeMission, buildCaption, fetchMissionCompletions } from '../../lib/completions'
+import { shareToWhatsApp } from '../../lib/whatsapp'
 
 function timeLeft(expiresAt, now) {
   const ms = new Date(expiresAt).getTime() - now.getTime()
@@ -115,9 +116,24 @@ function MissionCard({ mission, now, roomPlayers, player, onCompleted, onReject 
   // Rechazar solo tiene sentido en personales: una carrera/cooperativa/duelo
   // es de varias personas, y "rechazarla" la ocultaría para todas.
   const canReject = mission.formato === 'personal'
+  // Los duelos los resuelve el comité (tras la votación de WhatsApp, §3.3),
+  // no el propio jugador marcándose "Completada".
+  const isDuelo = mission.formato === 'duelo'
   const [tagging, setTagging] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [submitting, setSubmitting] = useState(false)
+  const [raceProgress, setRaceProgress] = useState(null)
+
+  useEffect(() => {
+    if (mission.formato !== 'carrera') return
+    let cancelled = false
+    fetchMissionCompletions(mission.id).then((data) => {
+      if (!cancelled) setRaceProgress(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [mission.formato, mission.id, mission.completions])
 
   function startTagging() {
     const defaults = Object.values(mission.slot_values ?? {}).map((v) => v.id)
@@ -137,14 +153,7 @@ function MissionCard({ mission, now, roomPlayers, player, onCompleted, onReject 
   async function handleConfirm() {
     setSubmitting(true)
     try {
-      const caption = buildCaption(mission)
-      try {
-        await navigator.clipboard.writeText(caption)
-      } catch {
-        // el portapapeles puede fallar por permisos; el usuario aún puede copiar a mano
-      }
-      window.open(`https://wa.me/?text=${encodeURIComponent(caption)}`, '_blank')
-
+      await shareToWhatsApp(buildCaption(mission))
       await completeMission({
         mission,
         playerId: player.id,
@@ -163,11 +172,20 @@ function MissionCard({ mission, now, roomPlayers, player, onCompleted, onReject 
         {rapidez && <span className="chip">⚡ bonus rapidez</span>}
       </div>
       <p>{mission.rendered_text}</p>
+
+      {mission.formato === 'carrera' && raceProgress && raceProgress.length > 0 && (
+        <p className="muted">
+          Ya la han completado {raceProgress.length}
+          {raceProgress.some((c) => c.player_id === player.id) &&
+            ` · tú vas ${raceProgress.findIndex((c) => c.player_id === player.id) + 1}º`}
+        </p>
+      )}
+
       <div className="card-footer">
         <span className="points">
           +{mission.base_points} pts · caduca en {timeLeft(mission.expires_at, now)}
         </span>
-        {!tagging && (
+        {!tagging && !isDuelo && (
           <div className="stack-row">
             {canReject && (
               <button type="button" className="small" onClick={() => onReject(mission.id)}>
@@ -179,6 +197,7 @@ function MissionCard({ mission, now, roomPlayers, player, onCompleted, onReject 
             </button>
           </div>
         )}
+        {isDuelo && <span className="muted">El comité resuelve el duelo</span>}
       </div>
 
       {tagging && (
