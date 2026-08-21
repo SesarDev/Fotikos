@@ -147,15 +147,20 @@ create policy "rooms_update_by_organizer" on rooms
 -- reconsulta la propia tabla players, que en ese instante del mismo
 -- comando SQL todavía no ve la fila que se está insertando. El chequeo
 -- directo evita depender de esa subconsulta para ver la fila propia.
-create policy "players_select_same_room" on players
-  for select using (
-    auth_user_id = auth.uid()
-    or room_id in (select current_room_ids())
-  );
+-- Abierto (igual que rooms): el código de sala ya es el secreto real
+-- (§13), y una sesión nueva necesita poder ver un jugador de otra sala
+-- para poder "reclamarlo" al recuperar cuenta desde otro dispositivo.
+create policy "players_select_open" on players
+  for select using (true);
 create policy "players_insert_self" on players
   for insert with check (auth_user_id = auth.uid());
-create policy "players_update_self" on players
-  for update using (auth_user_id = auth.uid());
+-- Editar mi propio perfil + recuperar jugador por nombre desde otro
+-- dispositivo (sin contraseñas, sistema de honor como el resto del
+-- juego, §1.1), fusionadas en una sola política de UPDATE.
+create policy "players_update_own_or_claim" on players
+  for update
+  using (true)
+  with check (auth_user_id = auth.uid());
 
 -- sessions
 create policy "sessions_select_same_room" on sessions

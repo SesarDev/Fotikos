@@ -157,13 +157,16 @@ label {
 /* Selección de emoji */
 .emoji-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  max-height: 45svh;
+  overflow-y: auto;
 }
 
 .emoji-option {
-  font-size: 24px;
+  font-size: 20px;
   aspect-ratio: 1;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;

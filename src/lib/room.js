@@ -35,6 +35,32 @@ export async function fetchPlayer(roomId, authUserId) {
   return data
 }
 
+export async function fetchPlayerByName(roomId, name) {
+  const trimmed = name.trim()
+  if (!trimmed) return null
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, name, emoji, accepted_rules_at')
+    .eq('room_id', roomId)
+    .ilike('name', trimmed)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+// Recuperar un jugador existente desde otro dispositivo/navegador (§ ver
+// migration_fase5.sql). Solo toca auth_user_id, nunca nombre ni emoji.
+export async function claimPlayer({ playerId, authUserId }) {
+  const { data, error } = await supabase
+    .from('players')
+    .update({ auth_user_id: authUserId })
+    .eq('id', playerId)
+    .select('id, name, emoji, accepted_rules_at')
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function createPlayer({ roomId, authUserId, name, emoji }) {
   const { data, error } = await supabase
     .from('players')

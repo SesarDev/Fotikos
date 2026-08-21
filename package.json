@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "seed:templates": "node scripts/seedTemplates.mjs",
     "drop": "node scripts/drop.mjs",
+    "create-room": "node scripts/createRoom.mjs",
+    "set-organizer": "node scripts/setOrganizer.mjs",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
