@@ -135,6 +135,12 @@ export default function MeTab({ room, player, onPlayerUpdated }) {
           {rejectedToday === null ? '…' : `${rejectedToday} misión${rejectedToday === 1 ? '' : 'es'} rechazada${rejectedToday === 1 ? '' : 's'} hoy`}
         </p>
       </section>
+
+      <section className="section">
+        <button type="button" onClick={() => (window.location.href = window.location.pathname)}>
+          Cambiar de sala
+        </button>
+      </section>
     </div>
   )
 }
