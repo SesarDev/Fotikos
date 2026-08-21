@@ -5,7 +5,6 @@ import MeTab from './tabs/MeTab'
 import ComiteTab from './tabs/ComiteTab'
 import RecapTab from './tabs/RecapTab'
 import { usePlayerMissions } from '../hooks/usePlayerMissions'
-import { isGameAsleep } from '../lib/schedule'
 import { fetchRoomPlayers } from '../lib/ranking'
 import { isOrganizer } from '../lib/comite'
 
@@ -26,14 +25,6 @@ export default function MainApp({ room, player, authUserId }) {
     { id: 'recap', label: 'Recap', icon: '🎉' },
     ...(organizer ? [{ id: 'comite', label: 'Comité', icon: '🛠️' }] : []),
   ]
-
-  if (isGameAsleep() && !organizer) {
-    return (
-      <div className="screen-center">
-        <p>😴 El juego vuelve a las 14:00</p>
-      </div>
-    )
-  }
 
   const unopenedCount = missions?.filter((m) => !m.opened_at && new Date(m.expires_at) > new Date()).length ?? 0
 
