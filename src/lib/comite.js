@@ -143,6 +143,11 @@ export async function countTodayEncargosForTarget(roomId, playerId) {
   return data.filter((m) => m.assignee_id === playerId || (m.target_ids ?? []).includes(playerId)).length
 }
 
+export async function setPlayerOrganizer(playerId, value) {
+  const { error } = await supabase.from('players').update({ is_organizer: value }).eq('id', playerId)
+  if (error) throw error
+}
+
 export async function updateWhatsappGroupUrl(room, url) {
   const { error } = await supabase
     .from('rooms')

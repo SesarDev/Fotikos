@@ -11,7 +11,9 @@ import {
   resolveDuelo,
   updateWhatsappGroupUrl,
   dropPersonalMissions,
+  setPlayerOrganizer,
 } from '../../lib/comite'
+import { fetchRoomPlayers } from '../../lib/ranking'
 
 const FORMATOS = ['personal', 'carrera', 'duelo', 'cooperativa']
 const DIFICULTADES = [
@@ -43,11 +45,25 @@ export default function ComiteTab({ room, roomPlayers }) {
   const [dropCount, setDropCount] = useState(1)
   const [dropping, setDropping] = useState(false)
   const [dropResult, setDropResult] = useState(null)
+  const [members, setMembers] = useState(roomPlayers)
+  const [promoting, setPromoting] = useState(null)
 
   async function reload() {
-    const [d, m] = await Promise.all([fetchDrafts(room.id), fetchActiveMissions(room.id)])
+    const [d, m, p] = await Promise.all([fetchDrafts(room.id), fetchActiveMissions(room.id), fetchRoomPlayers(room.id)])
     setDrafts(d)
     setActiveMissions(m)
+    setMembers(p)
+  }
+
+  async function handleTogglePromote(player) {
+    setPromoting(player.id)
+    try {
+      await setPlayerOrganizer(player.id, !player.is_organizer)
+      const p = await fetchRoomPlayers(room.id)
+      setMembers(p)
+    } finally {
+      setPromoting(null)
+    }
   }
 
   useEffect(() => {
@@ -158,6 +174,20 @@ export default function ComiteTab({ room, roomPlayers }) {
 
   return (
     <div className="stack">
+      <section className="section">
+        <h2>🛠️ Comité de la sala</h2>
+        {(members ?? []).map((p) => (
+          <div className="card-footer" key={p.id}>
+            <span>
+              {p.emoji} {p.name} {p.is_organizer && '· comité'}
+            </span>
+            <button type="button" className="small" onClick={() => handleTogglePromote(p)} disabled={promoting === p.id}>
+              {promoting === p.id ? '…' : p.is_organizer ? 'Quitar comité' : 'Hacer comité'}
+            </button>
+          </div>
+        ))}
+      </section>
+
       <section className="section">
         <h2>🎲 Reparto aleatorio</h2>
         <p className="muted">Reparte misiones personales a todos los jugadores de la sala, sorteadas del catálogo.</p>

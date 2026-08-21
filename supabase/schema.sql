@@ -179,6 +179,11 @@ create policy "players_update_own_or_claim" on players
   for update
   using (true)
   with check (auth_user_id = auth.uid());
+-- El comité puede ascender a otros jugadores de su sala a comité.
+create policy "players_promote_by_organizer" on players
+  for update
+  using (is_organizer(room_id))
+  with check (is_organizer(room_id));
 
 -- sessions
 create policy "sessions_select_same_room" on sessions

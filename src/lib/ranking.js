@@ -4,7 +4,7 @@ import { grupoMultiplier } from './points'
 export async function fetchRoomPlayers(roomId) {
   const { data, error } = await supabase
     .from('players')
-    .select('id, name, emoji')
+    .select('id, name, emoji, is_organizer')
     .eq('room_id', roomId)
   if (error) throw error
   return data
