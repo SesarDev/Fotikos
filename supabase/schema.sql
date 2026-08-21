@@ -139,6 +139,18 @@ as $$
   )
 $$;
 
+-- HELPER: ¿el jugador autenticado es comité de alguna sala? Para
+-- gestionar el catálogo global de misiones (room_id null), que no tiene
+-- un dueño más específico que "cualquier comité".
+create or replace function is_any_organizer()
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (select 1 from players where auth_user_id = auth.uid() and is_organizer = true)
+$$;
+
 -- ROW LEVEL SECURITY ------------------------------------------------------------
 -- Cada jugador solo ve/edita datos de su propia sala. Requiere auth anónima
 -- activada en Authentication → Providers → Anonymous sign-ins.
@@ -192,6 +204,18 @@ create policy "sessions_select_same_room" on sessions
 -- mission_templates
 create policy "templates_select" on mission_templates
   for select using (room_id is null or room_id in (select current_room_ids()));
+-- El comité (de cualquier sala) gestiona el banco de misiones: el
+-- catálogo global (room_id null, compartido) y las propias de su sala.
+create policy "templates_write_by_organizer" on mission_templates
+  for all
+  using (
+    (room_id is null and is_any_organizer())
+    or (room_id is not null and is_organizer(room_id))
+  )
+  with check (
+    (room_id is null and is_any_organizer())
+    or (room_id is not null and is_organizer(room_id))
+  );
 
 -- missions
 create policy "missions_select_same_room" on missions

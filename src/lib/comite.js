@@ -143,6 +143,79 @@ export async function countTodayEncargosForTarget(roomId, playerId) {
   return data.filter((m) => m.assignee_id === playerId || (m.target_ids ?? []).includes(playerId)).length
 }
 
+// Banco de misiones: catálogo global (room_id null, compartido por
+// todas las salas) más las propias de esta sala si las hay.
+export async function fetchAllTemplates(roomId) {
+  const { data, error } = await supabase
+    .from('mission_templates')
+    .select('*')
+    .or(`room_id.is.null,room_id.eq.${roomId}`)
+    .order('dificultad')
+  if (error) throw error
+  return data
+}
+
+function slotsAndRolesFromText(text, formato) {
+  const slots = {}
+  if (text.includes('{A}')) slots.A = 'player'
+  if (text.includes('{B}')) slots.B = 'player'
+  const roles = formato === 'cooperativa' && slots.A && slots.B ? { A: 'artífice', B: 'fotógrafo' } : {}
+  return { slots, roles }
+}
+
+// global=true → catálogo compartido por todas las salas (room_id null);
+// global=false → banco propio de esta sala.
+export async function createTemplate({ roomId, text, formato, dificultad, media, tags, global = true }) {
+  const { slots, roles } = slotsAndRolesFromText(text, formato)
+  const { data, error } = await supabase
+    .from('mission_templates')
+    .insert({
+      room_id: global ? null : roomId,
+      text,
+      formato,
+      dificultad,
+      base_points: basePointsForDificultad(dificultad),
+      media,
+      min_personas: Object.keys(slots).length + 1,
+      slots,
+      roles,
+      ventana: 'permanente',
+      tags,
+      peso: 1,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateTemplate(templateId, { text, formato, dificultad, media, tags }) {
+  const { slots, roles } = slotsAndRolesFromText(text, formato)
+  const { data, error } = await supabase
+    .from('mission_templates')
+    .update({
+      text,
+      formato,
+      dificultad,
+      base_points: basePointsForDificultad(dificultad),
+      media,
+      min_personas: Object.keys(slots).length + 1,
+      slots,
+      roles,
+      tags,
+    })
+    .eq('id', templateId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteTemplate(templateId) {
+  const { error } = await supabase.from('mission_templates').delete().eq('id', templateId)
+  if (error) throw error
+}
+
 export async function setPlayerOrganizer(playerId, value) {
   const { error } = await supabase.from('players').update({ is_organizer: value }).eq('id', playerId)
   if (error) throw error

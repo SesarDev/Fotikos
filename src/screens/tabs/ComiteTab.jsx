@@ -12,6 +12,10 @@ import {
   updateWhatsappGroupUrl,
   dropPersonalMissions,
   setPlayerOrganizer,
+  fetchAllTemplates,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
 } from '../../lib/comite'
 import { fetchRoomPlayers } from '../../lib/ranking'
 
@@ -343,22 +347,214 @@ export default function ComiteTab({ room, roomPlayers }) {
       <section className="section">
         <h2>📋 Misiones activas de la sala</h2>
         {!activeMissions && <p className="muted">Cargando…</p>}
-        {activeMissions?.map((m) => (
-          <div className="card" key={m.id}>
-            <div className="card-tags">
-              <span className="chip">{m.formato}</span>
-              <span className="chip">{m.origen}</span>
+        {activeMissions?.map((m) => {
+          const assignee = roomPlayers?.find((p) => p.id === m.assignee_id)
+          const targets = (m.target_ids ?? [])
+            .map((id) => roomPlayers?.find((p) => p.id === id)?.name)
+            .filter(Boolean)
+          const who = [assignee?.name, ...targets].filter(Boolean)
+          return (
+            <div className="card" key={m.id}>
+              <div className="card-tags">
+                <span className="chip">{m.formato}</span>
+                <span className="chip">{m.origen}</span>
+              </div>
+              <p>{m.rendered_text}</p>
+              <p className="muted">{who.length > 0 ? `Para: ${who.join(', ')}` : 'De toda la sala'}</p>
+              <div className="card-footer">
+                <span className="points">{m.base_points} pts</span>
+                <button type="button" onClick={() => handleCancel(m.id)}>
+                  Anular
+                </button>
+              </div>
             </div>
-            <p>{m.rendered_text}</p>
-            <div className="card-footer">
-              <span className="points">{m.base_points} pts</span>
-              <button type="button" onClick={() => handleCancel(m.id)}>
-                Anular
-              </button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </section>
+
+      <BancoMisiones room={room} />
     </div>
+  )
+}
+
+const MEDIAS = ['foto', 'video', 'cualquiera']
+
+function emptyTemplateForm() {
+  return { text: '', formato: 'personal', dificultad: 'media', media: 'foto', tags: '' }
+}
+
+function BancoMisiones({ room }) {
+  const [templates, setTemplates] = useState(null)
+  const [form, setForm] = useState(emptyTemplateForm)
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState(null)
+
+  async function reload() {
+    const data = await fetchAllTemplates(room.id)
+    setTemplates(data)
+  }
+
+  useEffect(() => {
+    reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.id])
+
+  async function handleCreate() {
+    if (!form.text.trim()) return
+    setSaving(true)
+    try {
+      await createTemplate({
+        roomId: room.id,
+        text: form.text.trim(),
+        formato: form.formato,
+        dificultad: form.dificultad,
+        media: form.media,
+        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
+      })
+      setForm(emptyTemplateForm())
+      await reload()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function startEdit(t) {
+    setEditingId(t.id)
+    setEditForm({ text: t.text, formato: t.formato, dificultad: t.dificultad, media: t.media, tags: (t.tags ?? []).join(', ') })
+  }
+
+  async function handleSaveEdit(id) {
+    setSaving(true)
+    try {
+      await updateTemplate(id, {
+        text: editForm.text.trim(),
+        formato: editForm.formato,
+        dificultad: editForm.dificultad,
+        media: editForm.media,
+        tags: editForm.tags.split(',').map((t) => t.trim()).filter(Boolean),
+      })
+      setEditingId(null)
+      await reload()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('¿Borrar esta misión del banco?')) return
+    await deleteTemplate(id)
+    await reload()
+  }
+
+  return (
+    <section className="section">
+      <h2>🗃️ Banco de misiones</h2>
+      <p className="muted">Catálogo compartido por todas las salas (más las propias de esta sala, si las hay).</p>
+
+      <div className="stack">
+        <textarea
+          value={form.text}
+          onChange={(e) => setForm((f) => ({ ...f, text: e.target.value }))}
+          placeholder="Texto de la misión (usa {A} y {B} para nombrar jugadores)"
+          rows={2}
+        />
+        <div className="stack-row">
+          <select value={form.formato} onChange={(e) => setForm((f) => ({ ...f, formato: e.target.value }))}>
+            {FORMATOS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+          <select value={form.dificultad} onChange={(e) => setForm((f) => ({ ...f, dificultad: e.target.value }))}>
+            {DIFICULTADES.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+          <select value={form.media} onChange={(e) => setForm((f) => ({ ...f, media: e.target.value }))}>
+            {MEDIAS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+        <input
+          value={form.tags}
+          onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+          placeholder="tags separados por coma (ej: noche, grupo)"
+        />
+        <button type="button" className="primary" onClick={handleCreate} disabled={saving}>
+          {saving ? 'Añadiendo…' : 'Añadir al banco'}
+        </button>
+      </div>
+
+      <div className="stack" style={{ marginTop: 16 }}>
+        {!templates && <p className="muted">Cargando…</p>}
+        {templates?.map((t) =>
+          editingId === t.id ? (
+            <div className="card" key={t.id}>
+              <textarea value={editForm.text} onChange={(e) => setEditForm((f) => ({ ...f, text: e.target.value }))} rows={2} />
+              <div className="stack-row">
+                <select value={editForm.formato} onChange={(e) => setEditForm((f) => ({ ...f, formato: e.target.value }))}>
+                  {FORMATOS.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+                <select value={editForm.dificultad} onChange={(e) => setEditForm((f) => ({ ...f, dificultad: e.target.value }))}>
+                  {DIFICULTADES.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+                <select value={editForm.media} onChange={(e) => setEditForm((f) => ({ ...f, media: e.target.value }))}>
+                  {MEDIAS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <input value={editForm.tags} onChange={(e) => setEditForm((f) => ({ ...f, tags: e.target.value }))} placeholder="tags" />
+              <div className="card-footer">
+                <button type="button" onClick={() => setEditingId(null)} disabled={saving}>
+                  Cancelar
+                </button>
+                <button type="button" className="primary small" onClick={() => handleSaveEdit(t.id)} disabled={saving}>
+                  Guardar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="card" key={t.id}>
+              <div className="card-tags">
+                <span className={`chip chip-${t.dificultad}`}>{t.dificultad}</span>
+                <span className="chip">{t.formato}</span>
+                {t.room_id === null && <span className="chip">global</span>}
+              </div>
+              <p>{t.text}</p>
+              <p className="muted">{(t.tags ?? []).join(', ')}</p>
+              <div className="card-footer">
+                <span className="points">{t.base_points} pts</span>
+                <div className="stack-row">
+                  <button type="button" className="small" onClick={() => startEdit(t)}>
+                    Editar
+                  </button>
+                  <button type="button" className="small" onClick={() => handleDelete(t.id)}>
+                    Borrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ),
+        )}
+      </div>
+    </section>
   )
 }
