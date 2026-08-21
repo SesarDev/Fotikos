@@ -151,6 +151,7 @@ export default function ComiteTab({ room, roomPlayers }) {
   }
 
   async function handleCancel(missionId) {
+    if (!window.confirm('¿Anular esta misión? No se puede deshacer.')) return
     await cancelMission(missionId)
     await reload()
   }
@@ -421,6 +422,8 @@ function BancoMisiones({ room }) {
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState(null)
+  const [filterFormato, setFilterFormato] = useState('todos')
+  const [filterDificultad, setFilterDificultad] = useState('todas')
 
   async function reload() {
     const data = await fetchAllTemplates(room.id)
@@ -479,6 +482,12 @@ function BancoMisiones({ room }) {
     await reload()
   }
 
+  const filteredTemplates = (templates ?? []).filter(
+    (t) =>
+      (filterFormato === 'todos' || t.formato === filterFormato) &&
+      (filterDificultad === 'todas' || t.dificultad === filterDificultad),
+  )
+
   return (
     <section className="section">
       <h2>🗃️ Banco de misiones</h2>
@@ -524,9 +533,29 @@ function BancoMisiones({ room }) {
         </button>
       </div>
 
-      <div className="stack" style={{ marginTop: 16 }}>
+      <div className="stack-row" style={{ marginTop: 16 }}>
+        <select value={filterFormato} onChange={(e) => setFilterFormato(e.target.value)}>
+          <option value="todos">Todos los formatos</option>
+          {FORMATOS.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </select>
+        <select value={filterDificultad} onChange={(e) => setFilterDificultad(e.target.value)}>
+          <option value="todas">Todas las dificultades</option>
+          {DIFICULTADES.map((d) => (
+            <option key={d.value} value={d.value}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="stack" style={{ marginTop: 12 }}>
         {!templates && <p className="muted">Cargando…</p>}
-        {templates?.map((t) =>
+        {templates && filteredTemplates.length === 0 && <p className="muted">Ninguna misión con ese filtro.</p>}
+        {filteredTemplates.map((t) =>
           editingId === t.id ? (
             <div className="card" key={t.id}>
               <textarea value={editForm.text} onChange={(e) => setEditForm((f) => ({ ...f, text: e.target.value }))} rows={2} />
